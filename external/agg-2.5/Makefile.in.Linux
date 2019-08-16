@@ -1,0 +1,8 @@
+AGGLIBS= -lagg 
+AGGCXXFLAGS = -O3 -I/usr/X11R6/include -L/usr/X11R6/lib
+CXX = ${CROSS}g++
+C = ${CROSS}gcc
+#CXX = icc
+LIB = ${CROSS}ar cr
+
+.PHONY : clean
