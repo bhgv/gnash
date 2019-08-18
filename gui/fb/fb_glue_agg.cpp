@@ -37,6 +37,15 @@
 #include "rawfb/RawFBDevice.h"
 #endif
 
+
+extern "C" {
+#include <stdio.h>
+
+#define DBG() //printf("%s> %s:%d\n", __FILE__, __func__, __LINE__)
+#define DBG2(...) //printf(__VA_ARGS__)
+}
+
+
 namespace gnash {
 
 namespace gui {
@@ -47,6 +56,7 @@ FBAggGlue::FBAggGlue()
       _fixinfo(),
       _varinfo()
 {
+DBG();
 //    GNASH_REPORT_FUNCTION;
 }
 
@@ -55,12 +65,14 @@ FBAggGlue::FBAggGlue(int fd)
       _fixinfo(),
       _varinfo()
 {
+DBG();
 //    GNASH_REPORT_FUNCTION;    
 }
 
 FBAggGlue::~FBAggGlue()
 {
 //    GNASH_REPORT_FUNCTION;    
+DBG();
 
     // Close the memory
     if (_fd) {
@@ -72,8 +84,10 @@ void
 FBAggGlue::setInvalidatedRegion(const SWFRect &/*bounds */)
 {
     // GNASH_REPORT_FUNCTION;
+DBG();
     
     if (!_renderer) {
+DBG();
         log_error(_("No renderer set!"));
         return;
     }
@@ -83,8 +97,10 @@ void
 FBAggGlue::setInvalidatedRegions(const InvalidatedRanges &ranges)
 {
 //    GNASH_REPORT_FUNCTION;
+DBG();
 
     if (!_renderer) {
+DBG();
         log_error(_("No renderer set in %s!"), __FUNCTION__);
         return;
     }
@@ -93,6 +109,7 @@ FBAggGlue::setInvalidatedRegions(const InvalidatedRanges &ranges)
 
     _drawbounds.clear();
 
+DBG();
     for (size_t rno = 0; rno<ranges.size(); rno++) {
         geometry::Range2d<int> bounds = Intersection(
             _renderer->world_to_pixel(ranges.getRange(rno)),
@@ -103,6 +120,7 @@ FBAggGlue::setInvalidatedRegions(const InvalidatedRanges &ranges)
         
         _drawbounds.push_back(bounds);   
     }
+DBG();
 }
 
 bool
@@ -115,29 +133,38 @@ FBAggGlue::init (int argc, char ***argv)
     _device.reset(new renderer::rawfb::RawFBDevice);
     _device->initDevice(argc, *argv);    
 
+DBG();
     renderer::rawfb::RawFBDevice *rawfb = reinterpret_cast
         <renderer::rawfb::RawFBDevice *>(_device.get());
 
     // You must pass in the file descriptor to the opened
     // framebuffer when creating a window.
+DBG();
     return _device->attachWindow(rawfb->getHandle());
 
+DBG();
     // Set the renderer for the AGG glue layer
     gnash::Renderer *rend = reinterpret_cast<gnash::Renderer *>
                                                 (createRenderHandler());
     if (rend) {
+DBG();
         _renderer.reset(rend);
     } else {
+DBG();
         log_error(_("failed to create a render handler for AGG!"));
         return false;
     }
 
+DBG();
     // Set grayscale for 8 bit modes
     if (_varinfo.bits_per_pixel == 8) {
+DBG();
 	if (!rawfb->setGrayscaleLUT8())
+DBG();
 	    return false;
     }
 
+DBG();
     return true;
 }
 
@@ -148,11 +175,14 @@ FBAggGlue::createRenderHandler()
 {
 //    GNASH_REPORT_FUNCTION;
 
+DBG();
     if (!_device) {
+DBG();
         log_error(_("No Device layer initialized yet!"));
         return nullptr;
     }
     
+DBG();
     const int width     = _device->getWidth();
     const int height    = _device->getHeight();
     
@@ -170,28 +200,35 @@ FBAggGlue::createRenderHandler()
               rawfb->getBlueSize());
     log_debug("Total bits per pixel: %d",  rawfb->getDepth());
     
+DBG();
     const char* pixelformat = agg_detect_pixel_format(
         rawfb->getRedOffset(),   rawfb->getRedSize(),
         rawfb->getGreenOffset(), rawfb->getGreenSize(),
         rawfb->getBlueOffset(),  rawfb->getBlueSize(),
         rawfb->getDepth());
 
+DBG();
     Renderer_agg_base *agg_handler = nullptr;
     if (pixelformat) {
+DBG();
 	agg_handler = create_Renderer_agg(pixelformat);
     } else {
+DBG();
 	log_error(_("The pixel format of your framebuffer could not be detected."));
 	return nullptr;
     }
     
+DBG();
     assert(agg_handler != nullptr);
 
     // Get the memory buffer to have AGG render into.
     std::uint8_t *mem = nullptr;
     if (rawfb->isSingleBuffered()) {
+DBG();
         log_debug(_("Double buffering disabled"));
         mem = rawfb->getFBMemory();
     } else {
+DBG();
         log_debug(_("Double buffering enabled"));
         mem = rawfb->getOffscreenBuffer();
     }
@@ -202,6 +239,7 @@ FBAggGlue::createRenderHandler()
 
     _renderer.reset(agg_handler);
     
+DBG();
     return agg_handler;
 }    
 
@@ -211,6 +249,7 @@ FBAggGlue::prepDrawingArea(FbWidget */* drawing_area */)
 //    GNASH_REPORT_FUNCTION;
     // nothing to do here, the memory was attached when
     // creating the renderer.
+DBG();
 }
 
 void
@@ -218,11 +257,14 @@ FBAggGlue::render()
 {
 //    GNASH_REPORT_FUNCTION;
 
+DBG();
     if (_drawbounds.size() == 0 ) {
+DBG();
         log_error(_("No Drawbounds set in %s!"), __FUNCTION__);
         return; // nothing to do..
     }
 
+DBG();
     _device->swapBuffers();
     
 #ifdef DEBUG_SHOW_FPS
@@ -235,7 +277,9 @@ FBAggGlue::width()
 {
 //    GNASH_REPORT_FUNCTION;
 
+DBG();
     if (_device) {
+DBG();
         return _device->getWidth();
     }
     return 0;
@@ -246,7 +290,9 @@ FBAggGlue::height()
 {
 //    GNASH_REPORT_FUNCTION;
 
+DBG();
     if (_device) {
+DBG();
         return _device->getHeight();
     }
     return 0;

@@ -129,6 +129,15 @@
 # include "opengles1/Renderer_gles1.h"
 #endif
 
+
+extern "C" {
+#include <stdio.h>
+
+#define DBG() //printf("%s> %s:%d\n", __FILE__, __func__, __LINE__)
+#define DBG2(...) //printf(__VA_ARGS__)
+}
+
+
 // We need to declare the std::, as the boost header files want to use ptrdiff_t.
 using namespace std;
 
@@ -141,6 +150,7 @@ int terminate_request = false;  // global scope to avoid GUI access
 std::unique_ptr<Gui> createFBGui(unsigned long windowid, float scale,
                                bool do_loop, RunResources& r)
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
     return std::unique_ptr<Gui>(new FBGui(windowid, scale, do_loop, r));
 }
@@ -148,6 +158,7 @@ std::unique_ptr<Gui> createFBGui(unsigned long windowid, float scale,
 /// Called on CTRL-C and alike
 void
 terminate_signal(int /*signo*/) {
+DBG();
     terminate_request = true;
 }
 
@@ -161,6 +172,7 @@ FBGui::FBGui(unsigned long xid, float scale, bool loop, RunResources& r)
       _timeout(0),
       _fullscreen(true)
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
     
     // initializing to zero helps with debugging and prevents weird bugs
@@ -171,6 +183,7 @@ FBGui::FBGui(unsigned long xid, float scale, bool loop, RunResources& r)
 
 FBGui::~FBGui()
 {  
+DBG();
     // GNASH_REPORT_FUNCTION;
     
     enable_terminal();
@@ -181,6 +194,7 @@ FBGui::init(int argc, char *** argv)
 {
 //  GNASH_REPORT_FUNCTION;
 
+DBG();
     // the current renderer as set on the command line or gnashrc file
     std::string renderer = _runResources.getRenderBackend();
 
@@ -233,49 +247,65 @@ FBGui::init(int argc, char *** argv)
     // map framebuffer into memory
     // Create a new Glue layer
 #ifdef RENDERER_AGG
+DBG();
     if (renderer.empty()) {
+DBG();
         renderer = "agg";
     }
+DBG();
     if (renderer == "agg") {
+DBG();
         _glue.reset(new FBAggGlue());
         // Initialize the glue layer between the renderer and the gui toolkit
         _glue->init(argc, argv);
+DBG();
         FBAggGlue *agg = reinterpret_cast<FBAggGlue *>(_glue.get());
         // Set "window" size
         _width =  agg->width();
         _height = agg->height();
         log_debug("Width:%d, Height:%d", _width, _height);
         _renderer.reset(agg->createRenderHandler());
+DBG();
     }
 #endif
+DBG();
     if ((renderer != "openvg") && (renderer != "agg")) {
+DBG();
         log_error(_("No renderer! %s not supported."), renderer);
     }
     
+DBG();
     disable_terminal();
     
 #ifdef HAVE_LINUX_UINPUT_H
+DBG();
     // Look for the User Mode Input (Uinput) device, which is used to
     // control the movement and coordinates of the mouse cursor.
     if (_uinput.scanForDevice()) {
+DBG();
         _uinput.init();
         _uinput.moveTo(0, 0);
     } else {
+DBG();
         log_error(_("Found no accessible User mode input event device"));
     }
 #endif
     
     // Initialize all the input devices
 
+DBG();
     // Look for Mice that use the PS/2 mouse protocol
     std::vector<std::shared_ptr<InputDevice> > possibles
         = InputDevice::scanForDevices();
     if (possibles.empty()) {
+DBG();
         log_error(_("Found no accessible input event devices"));
     } else {
+DBG();
         log_debug("Found %d input event devices.", possibles.size());
     }
     
+DBG();
     std::vector<std::shared_ptr<InputDevice> >::iterator it;
     for (it=possibles.begin(); it!=possibles.end(); ++it) {
         // Set the screen size, which is used for calculating absolute
@@ -315,6 +345,7 @@ FBGui::init(int argc, char *** argv)
         }
     }
 
+DBG();
     // Let -j -k override "window" size
     optind = 0; opterr = 0; int c;
     while ((c = getopt (argc, *argv, "j:k:X:Y:")) != -1) {
@@ -334,6 +365,7 @@ FBGui::init(int argc, char *** argv)
         }
     }
 
+DBG();
 #if 0
     // FIXME: this allows to draw in a subsection of the screen. OpenVG
     // should be able to support this, but right now it just gets in
@@ -348,6 +380,7 @@ FBGui::init(int argc, char *** argv)
     log_debug("X:%d, Y:%d", _xpos, _ypos);
 #endif
     
+DBG();
     _validbounds.setTo(0, 0, _width - 1, _height - 1);
     
     return true;
@@ -356,20 +389,24 @@ FBGui::init(int argc, char *** argv)
 bool
 FBGui::resize_view(int width, int height)
 {
+DBG();
     GNASH_REPORT_FUNCTION;
 
 //   _glue.prepDrawingArea(width, height, 0);
     Gui::resize_view(width, height);
  
+DBG();
     return true;
 }
 
 bool
 FBGui::run()
 {
+DBG();
 //  GNASH_REPORT_FUNCTION;
 
 #ifdef USE_TSLIB
+DBG();
     int ts_loop_count = 0;
 #endif
 
@@ -384,9 +421,12 @@ FBGui::run()
     // FIXME: this value is arbitrary, and will make any movie with
     // less than 12 frames eat up more of the cpu. It should probably
     // be a much lower value, like 2.
+DBG();
     if (fps > 12) {
+DBG();
         delay = static_cast<int>(100000/fps);
     } else {
+DBG();
         // 10ms per heart beat
         delay = 1000;
     }
@@ -394,6 +434,7 @@ FBGui::run()
     //           _interval * delay);
     
     // This loops endlessly at the frame rate
+DBG();
     while (!terminate_request) {  
         // wait the "heartbeat" inteval. _interval is in milliseconds,
         // but gnashSleep() wants nanoseconds, so adjust by 1000.
@@ -418,6 +459,7 @@ FBGui::run()
         }
     }
 
+DBG();
     return true;
 }
 
@@ -425,6 +467,7 @@ void
 FBGui::renderBuffer()
 {
 //    GNASH_REPORT_FUNCTION;    
+DBG();
 
     _glue->render();
 }
@@ -434,6 +477,7 @@ FBGui::createWindow(const char* /*title*/, int /*width*/, int /*height*/,
                      int /*xPosition*/, int /*yPosition*/)
 {
 //  GNASH_REPORT_FUNCTION;
+DBG();
 
     _runResources.setRenderer(_renderer);
 
@@ -443,6 +487,7 @@ FBGui::createWindow(const char* /*title*/, int /*width*/, int /*height*/,
 bool
 FBGui::createMenu()
 {
+DBG();
     // no menu support! 
     return true;
 }
@@ -450,6 +495,7 @@ FBGui::createMenu()
 bool
 FBGui::setupEvents()
 {
+DBG();
     // events currently not supported!
     return true;
 }
@@ -457,12 +503,14 @@ FBGui::setupEvents()
 void
 FBGui::setInterval(unsigned int interval)
 {
+DBG();
     _interval = interval;
 }
 
 void
 FBGui::setTimeout(unsigned int timeout)
 {
+DBG();
     _timeout = timeout;
 }
 
@@ -472,24 +520,28 @@ FBGui::setTimeout(unsigned int timeout)
 void
 FBGui::setFullscreen()
 {
+DBG();
     _fullscreen = true;
 }
 
 void
 FBGui::unsetFullscreen()
 {
+DBG();
     _fullscreen = false;
 }
 
 void
 FBGui::showMenu(bool /*show*/)
 {
+DBG();
     log_unimpl(_("This GUI does not yet support menus"));
 }
 
 bool
 FBGui::showMouse(bool /*show*/)
 {
+DBG();
     log_unimpl(_("This GUI does not yet support a mouse pointer"));
     // Should return true if the pointer was visible before call,
     // otherwise false;
@@ -500,6 +552,7 @@ void
 FBGui::setInvalidatedRegion(const SWFRect& bounds)
 {
 //  GNASH_REPORT_FUNCTION;
+DBG();
 
    setInvalidatedRegion(bounds);
 }
@@ -508,6 +561,7 @@ void
 FBGui::setInvalidatedRegions(const InvalidatedRanges& ranges)
  {
 //     GNASH_REPORT_FUNCTION;
+DBG();
 
      _glue->setInvalidatedRegions(ranges);
 }
@@ -515,12 +569,14 @@ FBGui::setInvalidatedRegions(const InvalidatedRanges& ranges)
 void
 FBGui::quitUI()
 {
+DBG();
     terminate_request = true;
 }
 
 char *
 FBGui::find_accessible_tty(int no)
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
 
     char* fn;
@@ -536,20 +592,24 @@ FBGui::find_accessible_tty(int no)
         if (fn) return fn;
     }
     
+DBG();
     return nullptr;
 }
 
 char *
 FBGui::find_accessible_tty(const char* format, int no)
 {
+DBG();
     static char fname[1024];
     
     snprintf(fname, sizeof fname, format, no);
     
     if (access(fname, R_OK|W_OK) != -1) {
+DBG();
         return fname;
     }
     
+DBG();
     return nullptr;
 }
 
@@ -558,17 +618,21 @@ FBGui::disable_terminal()
 {
     // GNASH_REPORT_FUNCTION;
 
+DBG();
     _original_kd = -1;
     
     // Find the TTY device name
     
     char* tty = find_accessible_tty(0);
 
+DBG();
     if (!tty) {
+DBG();
         log_error(_("Could not detect controlling TTY when trying to disable terminal"));
         return false;
     }
     
+DBG();
     log_debug("Disabling terminal %s", tty);
     
     // Detect the currently active virtual terminal (so we can switch back to
@@ -576,23 +640,29 @@ FBGui::disable_terminal()
     
     int fd = open(tty, O_RDWR);
     if (fd < 0) {
+DBG();
         log_error(_("Could not open %s"), tty);
         return false;
     }
     
+DBG();
     struct vt_stat vts;
     if (ioctl(fd, VT_GETSTATE, &vts) == -1) {
+DBG();
         log_error(_("Could not get current VT state"));
         close(fd);
         return false;
     }
     
+DBG();
     _original_vt = vts.v_active;
     // log_debug("Original TTY NO = %d", _original_vt);
   
 #ifdef REQUEST_NEW_VT
     // Request a new VT number
+DBG();
     if (ioctl(fd, VT_OPENQRY, &_own_vt) == -1) {
+DBG();
         log_error(_("Could not request a new VT"));
         close(fd);
         return false;
@@ -600,30 +670,39 @@ FBGui::disable_terminal()
   
     // log_debug("Own TTY NO = %d", _own_vt);
 
+DBG();
     if (fd > 0) {
         close(fd);
     }
   
+DBG();
     // Activate our new VT
     tty = find_accessible_tty(_own_vt);
     if (!tty) {
+DBG();
         log_error(_("Could not find device for VT number %d"), _own_vt);
         return false;
     }
   
+DBG();
     fd = open(tty, O_RDWR);
     if (fd < 0) {
+DBG();
         log_error(_("Could not open %s"), tty);
         return false;
     }
   
+DBG();
     if (ioctl(fd, VT_ACTIVATE, _own_vt) == -1) {
+DBG();
         log_error(_("Could not activate VT number %d"), _own_vt);
         close(fd);
         return false;
     }
   
+DBG();
     if (ioctl(fd, VT_WAITACTIVE, _own_vt) == -1) {
+DBG();
         log_error(_("Error waiting for VT %d becoming active"),
                   _own_vt);
         //close(tty);
@@ -632,21 +711,27 @@ FBGui::disable_terminal()
 
 #else
 
+DBG();
     _own_vt = _original_vt;   // keep on using the original VT
   
     if (fd > 0) {
+DBG();
         close(fd);
     }
   
     // Activate our new VT
+DBG();
     tty = find_accessible_tty(_own_vt);
     if (!tty) {
+DBG();
         log_error(_("Could not find device for VT number %d"), _own_vt);
         return false;
     }
   
+DBG();
     fd = open(tty, O_RDWR);
     if (fd < 0) {
+DBG();
         log_error(_("Could not open %s"), tty);
         return false;
     }
@@ -662,15 +747,21 @@ FBGui::disable_terminal()
   
     // Disable keyboard cursor
   
+DBG();
     if (ioctl(fd, KDGETMODE, &_original_kd) == -1) {
+DBG();
         log_error(_("Could not query current keyboard mode on VT"));
     }
 
+DBG();
     if (ioctl(fd, KDSETMODE, KD_GRAPHICS) == -1) {
+DBG();
         log_error(_("Could not switch to graphics mode on new VT"));
     }
 
+DBG();
     if (fd > 0) {
+DBG();
         close(fd);
     }
   
@@ -680,12 +771,14 @@ FBGui::disable_terminal()
     // VT_GETMODE / VT_SETMODE ioctl calls and handling their signals, but
     // probably nobody will ever want to switch consoles, so I don't bother... 
   
+DBG();
     return true;
 }
 
 bool
 FBGui::enable_terminal() 
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
 
     // log_debug("Restoring terminal...");
@@ -693,25 +786,32 @@ FBGui::enable_terminal()
     char* tty = find_accessible_tty(_own_vt);
 
     if (!tty) {
+DBG();
         log_error(_("Could not find device for VT number %d when enabling terminal"), _own_vt);
         return false;
     }
 
     log_debug("Enabling terminal %s", tty);
 
+DBG();
     int fd = open(tty, O_RDWR);
     if (fd < 0) {
+DBG();
         log_error(_("Could not open %s"), tty);
         return false;
     }
 
+DBG();
     if (ioctl(fd, VT_ACTIVATE, _original_vt)) {
+DBG();
         log_error(_("Could not activate VT number %d"), _original_vt);
         close(fd);
         return false;
     }
 
+DBG();
     if (ioctl(fd, VT_WAITACTIVE, _original_vt)) {
+DBG();
         log_error(_("Error waiting for VT %d becoming active"),
                   _original_vt);
         //close(tty);
@@ -720,20 +820,26 @@ FBGui::enable_terminal()
   
     // Restore keyboard
   
+DBG();
     if (ioctl(fd, KDSETMODE, _original_kd)) {
+DBG();
         log_error(_("Could not restore keyboard mode"));
     }  
 
+DBG();
     if (fd > 0) {
+DBG();
         close(fd);
     }
   
+DBG();
     return true;
 }
 
 void
 FBGui::checkForData()
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
 
     std::vector<std::shared_ptr<InputDevice> >::iterator it;
@@ -778,6 +884,7 @@ FBGui::checkForData()
             }
         }
     }
+DBG();
 }
 
 } // end of namespace gui

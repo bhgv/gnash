@@ -1,8 +1,10 @@
 AGGLIBS= -lagg -lSDL
-AGGCXXFLAGS = -O3 -I/usr/include/SDL -L/usr/lib
-CXX = g++
-C = gcc
+AGGCXXFLAGS = -O3 
+#-I/usr/include/SDL 
+#-L/usr/lib
+CXX = ${CROSS}g++
+C = ${CROSS}gcc
 #CXX = icc
-LIB = ar cr
+LIB = ${CROSS}ar cr
 
 .PHONY : clean

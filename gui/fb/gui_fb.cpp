@@ -29,6 +29,14 @@
 #include "fbsup.h"
 #endif
 
+extern "C" {
+#include <stdio.h>
+
+#define DBG() //printf("%s> %s:%d\n", __FILE__, __func__, __LINE__)
+#define DBG2(...) //printf(__VA_ARGS__)
+}
+
+
 namespace gnash {
 
 namespace gui {
@@ -36,11 +44,13 @@ namespace gui {
 #ifdef GUI_FB
 std::unique_ptr<Gui> createFBGui(unsigned long windowid, float scale, bool do_loop, RunResources& r)
 {
+DBG();
     return std::unique_ptr<Gui>(new FBGui(windowid, scale, do_loop, r));
 }
 #else // ! GUI_FB
 std::unique_ptr<Gui> createFBGui(unsigned long , float, bool, RunResourcesfloat , bool , unsigned int )
 {
+DBG();
     throw GnashException("Support for FB gui was not compiled in");
 }
 #endif // ! GUI_FB

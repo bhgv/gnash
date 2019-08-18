@@ -32,6 +32,14 @@
 #include "RawFBDevice.h"
 #include "GnashDevice.h"
 
+
+extern "C" {
+#include <stdio.h>
+
+#define DBG() //printf("%s> %s:%d\n", __FILE__, __func__, __LINE__)
+#define DBG2(...) //printf(__VA_ARGS__)
+}
+
 namespace gnash {
 
 namespace renderer {
@@ -42,6 +50,7 @@ RawFBDevice::RawFBDevice()
     : _fd(0),
       _fbmem(nullptr)
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
 }
 
@@ -51,8 +60,10 @@ RawFBDevice::RawFBDevice(int /* vid */)
       _cmap()
 {
     // GNASH_REPORT_FUNCTION;
+DBG();
 
     if (!initDevice(0, nullptr)) {
+DBG();
         log_error(_("Couldn't initialize RAWFB device!"));
     }
 }
@@ -63,6 +74,7 @@ RawFBDevice::RawFBDevice(int /* argc */ , char ** /* argv */)
       _cmap()
 {
     // GNASH_REPORT_FUNCTION;
+DBG();
 }
 
 void
@@ -70,10 +82,13 @@ RawFBDevice::clear()
 {
     GNASH_REPORT_FUNCTION;
     
+DBG();
     if (_fbmem) {
+DBG();
         memset(_fbmem, 0, _fixinfo.smem_len);
     }
     if (_offscreen_buffer) {
+DBG();
         memset(_offscreen_buffer.get(), 0, _fixinfo.smem_len);
     }
 }
@@ -82,18 +97,24 @@ RawFBDevice::~RawFBDevice()
 {
     // GNASH_REPORT_FUNCTION;
 
+DBG();
     if (_fbmem) {
+DBG();
         munmap(_fbmem, 0);
         log_debug(_("Freeing framebuffer memory"));
         _fbmem = nullptr;
     }
     
+DBG();
     if (_offscreen_buffer) {
+DBG();
         log_debug(_("Freeing offscreen buffer"));
         _offscreen_buffer.reset();
     }
     
+DBG();
     if (_fd) {
+DBG();
         close (_fd);
         _fd = -1;
     }
@@ -104,46 +125,60 @@ RawFBDevice::initDevice(int /* argc */, char **/* argv[] */)
 {
     GNASH_REPORT_FUNCTION;
     
+DBG();
     const char *devname = nullptr;
     // Open the framebuffer device
 #ifdef ENABLE_FAKE_FRAMEBUFFER
+DBG();
     _fd = open(FAKEFB, O_RDWR);
     log_debug(_("WARNING: Using %s as a fake framebuffer!"), FAKEFB);
 #else
+DBG();
     devname = getenv("FRAMEBUFFER");
     if (!devname) {
         // We can't use the fake framebuffer with the FRAMEBUFFER
         // environment variable, as it coinfuses X11. So this
         // lets us redefine this at runtime.
+DBG();
         devname = getenv("FAKE_FRAMEBUFFER");
         if (!devname) {
+DBG();
 #ifdef __ANDROID__
+DBG();
             devname = "/dev/graphics/fb0";
 #else
+DBG();
             devname = "/dev/fb0";
 #endif
         }
     }
+DBG();
     _fd = open(devname, O_RDWR);
 #endif
     if (_fd < 0) {
+DBG();
         log_error(_("Could not open framebuffer device: %s"), strerror(errno));
         return false;
     } else {
+DBG();
         log_debug(_("Opened framebuffer device: %s"), devname);
     }
     
+DBG();
     // Load framebuffer properties
 #ifdef ENABLE_FAKE_FRAMEBUFFER
+DBG();
     fakefb_ioctl(_fd, FBIOGET_VSCREENINFO, &_varinfo);
     fakefb_ioctl(_fd, FBIOGET_FSCREENINFO, &_fixinfo);
 #else
+DBG();
     ioctl(_fd, FBIOGET_VSCREENINFO, &_varinfo);
     ioctl(_fd, FBIOGET_FSCREENINFO, &_fixinfo);
 #endif
 
     // dump();
     
+DBG();
     log_debug("Framebuffer device uses %d bytes of memory.",
                _fixinfo.smem_len);
     log_debug("Video mode: %dx%d with %d bits per pixel. (Virtual: %dx%d)",
@@ -152,6 +187,7 @@ RawFBDevice::initDevice(int /* argc */, char **/* argv[] */)
               _varinfo.xres_virtual, _varinfo.yres_virtual
         );
 
+DBG();
     log_debug("Framebuffer stride is: %d.",  _fixinfo.line_length);
 
     return true;
@@ -162,8 +198,10 @@ RawFBDevice::setGrayscaleLUT8()
 {
 #define TO_16BIT(x) (x | (x<<8))
 
+DBG();
     GNASH_REPORT_FUNCTION;
 
+DBG();
     int i;
 
     log_debug(_("LUT8: Setting up colormap"));
@@ -175,6 +213,7 @@ RawFBDevice::setGrayscaleLUT8()
     _cmap.blue = (__u16*)malloc(CMAP_SIZE);
     _cmap.transp = nullptr;
 
+DBG();
     for (i=0; i<256; i++) {
         int r = i;
         int g = i;
@@ -186,15 +225,19 @@ RawFBDevice::setGrayscaleLUT8()
     }
     
 #ifdef ENABLE_FAKE_FRAMEBUFFER
+DBG();
     if (fakefb_ioctl(_fd, FBIOPUTCMAP, &_cmap))
 #else
+DBG();
     if (ioctl(_fd, FBIOPUTCMAP, &_cmap))
 #endif
     {
+DBG();
         log_error(_("LUT8: Error setting colormap: %s"), strerror(errno));
         return false;
     }
 
+DBG();
     return true;
 
 #undef TO_16BIT
@@ -204,49 +247,61 @@ RawFBDevice::setGrayscaleLUT8()
 bool
 RawFBDevice::attachWindow(GnashDevice::native_window_t window)
 {
+DBG();
     GNASH_REPORT_FUNCTION;
 
     // map framebuffer into memory. There isn't really a native
     // window when using a frambuffer, it's actualy the file descriptor
     // of the opened device. EGL wants the descriptor here too, so
     // this way we work in a similar manner.
+DBG();
     if (window) {
+DBG();
         _fbmem = reinterpret_cast<std::uint8_t *>(mmap(nullptr, _fixinfo.smem_len,
                                         PROT_READ|PROT_WRITE, MAP_SHARED,
                                         window, 0));
     }
         
+DBG();
     if (!_fbmem) {
+DBG();
         log_error(("Couldn't mmap() %d bytes of memory!"),
                   _fixinfo.smem_len);
         return false;
     }
     
+DBG();
     if (!isSingleBuffered()) {
+DBG();
         // Create an offscreen buffer the same size as the Framebuffer
         _offscreen_buffer.reset(new std::uint8_t[_fixinfo.smem_len]);
         memset(_offscreen_buffer.get(), 0, _fixinfo.smem_len);
     }
     
+DBG();
     return true;
 }
 
 bool
 RawFBDevice::swapBuffers()
 {
+DBG();
     // When using AGG, the pointer to the offscreen buffer has been
     // passed to AGG, so it renders in the offscreen buffer by default,
     // leaving it up to us to manually copy the data from the offscreeen
     // buffer into the real framebuffer memory.
     if (_fbmem && _offscreen_buffer) {
+DBG();
         std::copy(_offscreen_buffer.get(),
                   _offscreen_buffer.get() + _fixinfo.smem_len,
                   _fbmem);
         return true;
     } else {
+DBG();
         // When single buffered, there is no data to copy, so always true
         return true;
     }     
+DBG();
     return false;
 }
     
@@ -254,6 +309,7 @@ RawFBDevice::swapBuffers()
 const char *
 RawFBDevice::getErrorString(int /* error */)
 {
+DBG();
     return nullptr;
 }
 
@@ -262,18 +318,21 @@ void
 RawFBDevice::createWindow(const char * /* name */, int /* x */,
                           int /* y */, int /* width */, int /* height */)
 {
+DBG();
     GNASH_REPORT_FUNCTION;
 }
 
 void
 RawFBDevice::eventLoop(size_t /* passes */)
 {
+DBG();
     GNASH_REPORT_FUNCTION;    
 }
 
 void
 RawFBDevice::dump()
 {
+DBG();
     // dump the fb_var_screeninfo data
     std::cerr << "X res visible  = " << _varinfo.xres << std::endl;
     std::cerr << "Y res visible  = " << _varinfo.yres << std::endl;
@@ -299,6 +358,7 @@ RawFBDevice::dump()
 int
 fakefb_ioctl(int /* fd */, int request, void *data)
 {
+DBG();
     // GNASH_REPORT_FUNCTION;
     
     switch (request) {
