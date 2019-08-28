@@ -45,6 +45,14 @@
 #include <boost/format.hpp>
 #endif
 
+extern "C" {
+#include <stdio.h>
+
+#define DBG() printf("%s> %s:%d\n", __FILE__, __func__, __LINE__)
+#define DBG2(...) printf(__VA_ARGS__)
+}
+
+
 /// Define this to make sure each frame is fully rendered from ground up
 /// even if no motion has been detected in the movie.
 //#define FORCE_REDRAW 1
@@ -277,27 +285,36 @@ Gui::restart()
 void
 Gui::updateStageMatrix()
 {
+  GNASH_REPORT_FUNCTION;
+
+DBG();
     if (!_stage) {
+DBG();
         // When VM initializes, we'll get a call to resize_view, which
         // would call us again.
         log_error(_("Can't update stage matrix till VM is initialized"));
         return;
     }
     
+    DBG();
     assert(_stage); // when VM is initialized this should hold
     
+    DBG();
     float swfwidth = _movieDef->get_width_pixels();
     float swfheight = _movieDef->get_height_pixels();
     
     // Fetch scale mode
     movie_root::ScaleMode scaleMode = _stage->getStageScaleMode();
 
+    DBG();
     switch (scaleMode) {
         case movie_root::SCALEMODE_NOSCALE:
+          DBG();
             _xscale = _yscale = 1.0f;
             break;
         
         case movie_root::SCALEMODE_SHOWALL:
+          DBG();
             // set new scale value ( user-pixel / pseudo-pixel ). Do
             // not divide by zero, or we end up with an invalid
             // stage matrix that returns nan values.			
@@ -313,6 +330,7 @@ Gui::updateStageMatrix()
             break;
 
         case movie_root::SCALEMODE_NOBORDER:
+          DBG();
             // set new scale value ( user-pixel / pseudo-pixel )
             _xscale = (swfwidth == 0.0f) ? 1.0f : _width / swfwidth;
             _yscale = (swfheight == 0.0f) ? 1.0f : _height / swfheight;
@@ -326,16 +344,23 @@ Gui::updateStageMatrix()
             break;
         
         case movie_root::SCALEMODE_EXACTFIT:
+          DBG();
             // NOTE: changing aspect ratio is valid!
             _xscale = (swfwidth == 0.0f) ? 1.0f : _width / swfwidth;
             _yscale = (swfheight == 0.0f) ? 1.0f : _height / swfheight;
             break;
         
         default:
+          DBG();
             log_error(_("Invalid scaleMode %d"), scaleMode);
             break;
     }
     
+    DBG();
+    DBG2(">>> WHf=(%f, %f)\n", swfwidth, swfheight);
+    DBG2(">>> WHe=(%d, %d)\n", _width, _height);
+    DBG2(">>> XYs=(%f, %f)\n", _xscale, _yscale);
+ 
     _xoffset=0;
     _yoffset=0;
     
@@ -344,16 +369,19 @@ Gui::updateStageMatrix()
     movie_root::StageHorizontalAlign halign = align.first;
     movie_root::StageVerticalAlign valign = align.second;
     
+    DBG();
     // Handle horizontal alignment
     switch ( halign ) {
       case movie_root::STAGE_H_ALIGN_L:
       {
+      DBG();
           // _xoffset=0 is fine
           break;
       }
       
       case movie_root::STAGE_H_ALIGN_R:
       {
+        DBG();
           // Offsets in pixels
           float defWidth = swfwidth *= _xscale;
           float diffWidth = _width-defWidth;
@@ -363,6 +391,7 @@ Gui::updateStageMatrix()
         
       case movie_root::STAGE_V_ALIGN_C:
       {
+        DBG();
           // Offsets in pixels
           float defWidth = swfwidth *= _xscale;
           float diffWidth = _width-defWidth;
@@ -372,21 +401,25 @@ Gui::updateStageMatrix()
         
       default:
       {
+        DBG();
           log_error(_("Invalid horizontal align %d"), valign);
           break;
       }
     }
     
+    DBG();
     // Handle vertical alignment
     switch ( valign ) {
       case movie_root::STAGE_V_ALIGN_T:
       {
+      DBG();
           // _yoffset=0 is fine
           break;
       }
       
       case movie_root::STAGE_V_ALIGN_B:
       {
+        DBG();
           float defHeight = swfheight *= _yscale;
           float diffHeight = _height-defHeight;
           _yoffset = diffHeight;
@@ -395,6 +428,7 @@ Gui::updateStageMatrix()
         
       case movie_root::STAGE_V_ALIGN_C:
       {
+        DBG();
           float defHeight = swfheight *= _yscale;
           float diffHeight = _height-defHeight;
           _yoffset = diffHeight/2.0;
@@ -403,6 +437,7 @@ Gui::updateStageMatrix()
         
       default:
       {
+        DBG();
           log_error(_("Invalid vertical align %d"), valign);
           break;
       }
@@ -411,15 +446,21 @@ Gui::updateStageMatrix()
     //log_debug("updateStageMatrix: scaleMode:%d, valign:%d, halign:%d",
     //scaleMode, valign, halign);
     
+    DBG();
     // TODO: have a generic set_matrix ?
-    if (_renderer.get()) {
+    Renderer* _renderer = _runResources.renderer();
+//    if (_renderer.get()) {
+    if (_renderer) {
+      DBG();
         _renderer->set_scale(_xscale, _yscale);
         _renderer->set_translation(_xoffset, _yoffset);
     } else {
+      DBG();
         //log_debug("updateStageMatrix: could not signal updated stage
         //matrix to renderer (no renderer registered)");
     }
     
+    DBG();
     // trigger redraw
     //_redraw_flag |= (_width!=width) || (_height!=height);
     _redraw_flag = true; // this fixes bug #21971
@@ -434,19 +475,26 @@ Gui::resize_view(int width, int height)
     assert(width > 0);
     assert(height > 0);
 
+    DBG();
     if (_stage && _started) {
+      DBG();
         _stage->setDimensions(width, height);
     }
 
+    DBG();
     _width = width;
     _height = height;
     _validbounds.setTo(0, 0, _width, _height);
     
+    DBG();
     updateStageMatrix();
     
+    DBG();
     if ( _stage && _started ) {
+      DBG();
         display(_stage);
     }
+    DBG();
 }
 
 

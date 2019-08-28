@@ -104,7 +104,8 @@ protected:
     struct fb_fix_screeninfo            _fixinfo;
     struct fb_var_screeninfo            _varinfo;
     
-    std::unique_ptr<Renderer>           _renderer;
+//    std::unique_ptr<Renderer>           _renderer;
+    std::shared_ptr<Renderer>           _renderer;
 
     geometry::Range2d<int>              _validbounds;
     std::vector< geometry::Range2d<int> > _drawbounds;    
